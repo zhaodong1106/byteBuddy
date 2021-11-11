@@ -60,6 +60,7 @@
                     </descriptorRefs>
                     <archive>
                         <manifestEntries>
+                            <Agent-Class>com.zhaodong.byteBuddy.AgentMain</Agent-Class>
                             <Premain-Class>com.zhaodong.byteBuddy.PreMain</Premain-Class>
                             <Can-Redefine-Classes>true</Can-Redefine-Classes>
                             <Can-Retransform-Classes>true</Can-Retransform-Classes>
