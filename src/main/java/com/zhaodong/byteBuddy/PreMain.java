@@ -42,8 +42,8 @@ public class PreMain {
             System.exit(0);
             return;
         }
-        try {
-            nettyConnection();
+
+
             AgentBuilder.Transformer transformer = (builder, typeDescription, classLoader, javaModule) -> {
                 return builder
                         .method(ElementMatchers.isAnnotatedWith(named("org.springframework.web.bind.annotation.GetMapping")
@@ -64,10 +64,23 @@ public class PreMain {
 //                .type()  // 指定需要拦截的类 "cn.bugstack.demo.test"
                     .transform(transformer)
                     .installOn(inst);
-             cs.channel().closeFuture().sync();
-        }finally {
-            workerGroup.shutdownGracefully();
-        }
+           new Thread(()->{
+               try {
+                   nettyConnection();
+                   cs.channel().closeFuture().sync();
+               } catch (InterruptedException e) {
+                   e.printStackTrace();
+               }
+           }).start();
+
+             Runtime.getRuntime().addShutdownHook(new Thread(()->{
+                 System.out.println("关闭netty");
+
+                 if(!workerGroup.isShuttingDown()){
+                     workerGroup.shutdownGracefully();
+                 }
+             }));
+
     }
 
     private static void nettyConnection() throws InterruptedException {
@@ -88,7 +101,7 @@ public class PreMain {
         });
 
         cs=b.connect(host, port).sync();
-
+        System.out.println("开始连接netty server");
 
     }
 
