@@ -20,13 +20,13 @@ public class MonitorMethod {
 
     @RuntimeType
     public static Object intercept(@Origin Method method, @SuperCall Callable<?> callable, @AllArguments Object[] args) throws Exception {
-
         Object resObj = null;
         long start = System.currentTimeMillis();
         try {
             resObj = callable.call();
             return resObj;
         } finally {
+//            PreMain.cs.channel().writeAndFlush("")
                 logger.info("监控 - Begin By Byte-buddy");
                 logger.info("方法名称：" + method.getName());
                 logger.info("入参个数：" + method.getParameterCount());
