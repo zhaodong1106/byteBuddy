@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -18,6 +19,7 @@ import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
 
 
+import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.instrument.Instrumentation;
 import java.nio.charset.Charset;
@@ -68,7 +70,7 @@ public class PreMain {
                try {
                    nettyConnection();
                    cs.channel().closeFuture().sync();
-               } catch (InterruptedException e) {
+               } catch (InterruptedException | UnsupportedEncodingException e) {
                    e.printStackTrace();
                }
            }).start();
@@ -83,7 +85,7 @@ public class PreMain {
 
     }
 
-    private static void nettyConnection() throws InterruptedException {
+    private static void nettyConnection() throws InterruptedException, UnsupportedEncodingException {
         String host = "localhost";
         int port = 8888;
         workerGroup = new NioEventLoopGroup();
@@ -101,6 +103,7 @@ public class PreMain {
         });
 
         cs=b.connect(host, port).sync();
+        cs.channel().writeAndFlush(Unpooled.copiedBuffer("dasdasd".getBytes("utf-8")));
         System.out.println("开始连接netty server");
 
     }

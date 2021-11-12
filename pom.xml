@@ -59,6 +59,9 @@
                         <descriptorRef>jar-with-dependencies</descriptorRef>
                     </descriptorRefs>
                     <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                        </manifest>
                         <manifestEntries>
                             <Agent-Class>com.zhaodong.byteBuddy.AgentMain</Agent-Class>
                             <Premain-Class>com.zhaodong.byteBuddy.PreMain</Premain-Class>

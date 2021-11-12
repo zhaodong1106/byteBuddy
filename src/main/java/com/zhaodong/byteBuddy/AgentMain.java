@@ -3,17 +3,26 @@ package com.zhaodong.byteBuddy;
 import com.google.gson.Gson;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.util.ReferenceCountUtil;
 import net.bytebuddy.agent.builder.AgentBuilder;
+import net.bytebuddy.asm.Advice;
+import net.bytebuddy.description.type.TypeDescription;
+import net.bytebuddy.dynamic.DynamicType;
 import net.bytebuddy.implementation.MethodDelegation;
 import net.bytebuddy.matcher.ElementMatchers;
+import net.bytebuddy.utility.JavaModule;
 
+import java.io.UnsupportedEncodingException;
+import java.lang.instrument.ClassFileTransformer;
+import java.lang.instrument.IllegalClassFormatException;
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
+import java.security.ProtectionDomain;
 import java.util.Map;
 
 import static net.bytebuddy.matcher.ElementMatchers.nameEndsWith;
@@ -37,31 +46,29 @@ public class AgentMain {
         }
 
 
-        AgentBuilder.Transformer transformer = (builder, typeDescription, classLoader, javaModule) -> {
-            return builder
-                    .method(ElementMatchers.isAnnotatedWith(named("org.springframework.web.bind.annotation.GetMapping")
-                            .or((named("org.springframework.web.bind.annotation.PostMapping")))
-                            .or((nameEndsWith("PrintLog")))
-                    ))
-//                        .method(ElementMatchers.declaresMethod(ElementMatchers.isAnnotatedWith(ElementMatchers.nameContains("")))) // 拦截任意方法
-                    .intercept(MethodDelegation.to(MonitorMethod.class)); // 委托
 
-        };
 
-        new AgentBuilder
-                .Default()
+
+
+
+        Advice advice = Advice.to(TimeMeasurementAdvice.class);
+        new AgentBuilder.Default()
+                .with(AgentBuilder.RedefinitionStrategy.RETRANSFORMATION)
+                .disableClassFormatChanges()
                 .type(ElementMatchers.nameStartsWith(argsMap.get("basePackage")))
-//                .type(ElementMatchers.hasAnnotation(ElementMatchers.annotationType(ElementMatchers.nameContains("RestController"))
-//                        .or(ElementMatchers.annotationType(ElementMatchers.nameContains("Controller")))) )
-                // 指定需要拦截的类 "cn.bugstack.demo.test"
-//                .type()  // 指定需要拦截的类 "cn.bugstack.demo.test"
-                .transform(transformer)
-                .installOn(inst);
+                .transform((DynamicType.Builder<?> builder,
+                            TypeDescription type,
+                            ClassLoader loader,
+                            JavaModule module) -> {
+                    return builder.visit(advice.on(ElementMatchers.isAnnotatedWith(named("org.springframework.web.bind.annotation.GetMapping")
+                            .or((named("org.springframework.web.bind.annotation.PostMapping")))
+                            .or((nameEndsWith("PrintLog"))))));
+                }).installOn(inst);
         new Thread(()->{
             try {
                 nettyConnection();
                 cs.channel().closeFuture().sync();
-            } catch (InterruptedException e) {
+            } catch (InterruptedException | UnsupportedEncodingException e) {
                 e.printStackTrace();
             }
         }).start();
@@ -76,7 +83,7 @@ public class AgentMain {
 
     }
 
-    private static void nettyConnection() throws InterruptedException {
+    private static void nettyConnection() throws InterruptedException, UnsupportedEncodingException {
         String host = "localhost";
         int port = 8888;
         workerGroup = new NioEventLoopGroup();
@@ -94,6 +101,7 @@ public class AgentMain {
         });
 
         cs=b.connect(host, port).sync();
+        cs.channel().writeAndFlush(Unpooled.copiedBuffer("dasdasd".getBytes("utf-8")));
         System.out.println("开始连接netty server");
 
     }
